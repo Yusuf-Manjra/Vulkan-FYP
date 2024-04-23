@@ -1,29 +1,38 @@
 /*
 * Extended sample base class for ray tracing based samples
 *
-* Copyright (C) 2020-2021 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "VulkanRaytracingSample.h"
 
-void VulkanRaytracingSample::updateRenderPass()
+void VulkanRaytracingSample::setupRenderPass()
 {
 	// Update the default render pass with different color attachment load ops to keep attachment contents
 	// With this change, we can e.g. draw an UI on top of the ray traced scene
 
 	vkDestroyRenderPass(device, renderPass, nullptr);
 
+	VkAttachmentLoadOp colorLoadOp{ VK_ATTACHMENT_LOAD_OP_LOAD };
+	VkImageLayout colorInitialLayout{ VK_IMAGE_LAYOUT_PRESENT_SRC_KHR };
+	
+	if (rayQueryOnly) {
+		// For samples that use ray queries with rasterization, we need to use a setup similar to the non-ray tracing samples
+		colorLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	}
+
 	std::array<VkAttachmentDescription, 2> attachments = {};
 	// Color attachment
 	attachments[0].format = swapChain.colorFormat;
 	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	attachments[0].loadOp = colorLoadOp;
 	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[0].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachments[0].initialLayout = colorInitialLayout;
 	attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	// Depth attachment
 	attachments[1].format = depthFormat;
@@ -55,21 +64,21 @@ void VulkanRaytracingSample::updateRenderPass()
 	subpassDescription.pResolveAttachments = nullptr;
 
 	// Subpass dependencies for layout transitions
-	std::array<VkSubpassDependency, 2> dependencies;
+	std::array<VkSubpassDependency, 2> dependencies{};
 
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependencies[0].dstSubpass = 0;
 	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_NONE_KHR;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 	dependencies[1].srcSubpass = 0;
 	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -82,6 +91,32 @@ void VulkanRaytracingSample::updateRenderPass()
 	renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 	renderPassInfo.pDependencies = dependencies.data();
 	VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+}
+
+void VulkanRaytracingSample::setupFrameBuffer()
+{
+	VkImageView attachments[2];
+
+	// Depth/Stencil attachment is the same for all frame buffers
+	attachments[1] = depthStencil.view;
+
+	VkFramebufferCreateInfo frameBufferCreateInfo = {};
+	frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	frameBufferCreateInfo.pNext = NULL;
+	frameBufferCreateInfo.renderPass = renderPass;
+	frameBufferCreateInfo.attachmentCount = 2;
+	frameBufferCreateInfo.pAttachments = attachments;
+	frameBufferCreateInfo.width = width;
+	frameBufferCreateInfo.height = height;
+	frameBufferCreateInfo.layers = 1;
+
+	// Create frame buffers for every swap chain image
+	frameBuffers.resize(swapChain.imageCount);
+	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	{
+		attachments[0] = swapChain.buffers[i].view;
+		VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+	}
 }
 
 void VulkanRaytracingSample::enableExtensions()
@@ -277,10 +312,6 @@ void VulkanRaytracingSample::prepare()
 	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
 	vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
 	vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
-	// Update the render pass to keep the color attachment contents, so we can draw the UI on top of the ray traced output
-	if (!rayQueryOnly) {
-		updateRenderPass();
-	}
 }
 
 VkStridedDeviceAddressRegionKHR VulkanRaytracingSample::getSbtEntryStridedDeviceAddressRegion(VkBuffer buffer, uint32_t handleCount)

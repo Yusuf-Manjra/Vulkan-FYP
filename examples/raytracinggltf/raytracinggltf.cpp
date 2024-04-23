@@ -57,9 +57,7 @@ public:
 	VulkanExample() : VulkanRaytracingSample()
 	{
 		title = "Ray tracing glTF model";
-		settings.overlay = false;
 		camera.type = Camera::CameraType::lookat;
-		//camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, -0.1f, -1.0f));
@@ -524,6 +522,8 @@ public:
 			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
 			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
 			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(model.textures.size()) }
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
@@ -696,6 +696,8 @@ public:
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
 
+			drawUI(drawCmdBuffers[i], frameBuffers[i]);
+
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
@@ -778,7 +780,6 @@ public:
 		updateUniformBuffers();
 		if (camera.updated) {
 			// If the camera's view has been updated we reset the frame accumulation
-			std::cout << "Cam updated\n";
 			uniformData.frame = -1;
 		}
 		draw();

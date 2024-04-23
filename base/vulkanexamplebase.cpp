@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -686,10 +686,10 @@ void VulkanExampleBase::updateOverlay()
 	io.DisplaySize = ImVec2((float)width, (float)height);
 	io.DeltaTime = frameTimer;
 
-	io.MousePos = ImVec2(mousePos.x, mousePos.y);
-	io.MouseDown[0] = mouseButtons.left && UIOverlay.visible;
-	io.MouseDown[1] = mouseButtons.right && UIOverlay.visible;
-	io.MouseDown[2] = mouseButtons.middle && UIOverlay.visible;
+	io.MousePos = ImVec2(mouseState.position.x, mouseState.position.y);
+	io.MouseDown[0] = mouseState.buttons.left && UIOverlay.visible;
+	io.MouseDown[1] = mouseState.buttons.right && UIOverlay.visible;
+	io.MouseDown[2] = mouseState.buttons.middle && UIOverlay.visible;
 
 	ImGui::NewFrame();
 
@@ -721,8 +721,8 @@ void VulkanExampleBase::updateOverlay()
 	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-	if (mouseButtons.left) {
-		mouseButtons.left = false;
+	if (mouseState.buttons.left) {
+		mouseState.buttons.left = false;
 	}
 #endif
 }
@@ -849,7 +849,7 @@ VulkanExampleBase::VulkanExampleBase()
 		vks::tools::errorModeSilent = true;
 	}
 	if (commandLineParser.isSet("benchmarkwarmup")) {
-		benchmark.warmup = commandLineParser.getValueAsInt("benchmarkwarmup", benchmark.warmup);
+		benchmark.warmup = commandLineParser.getValueAsInt("benchmarkwarmup", 0);
 	}
 	if (commandLineParser.isSet("benchmarkruntime")) {
 		benchmark.duration = commandLineParser.getValueAsInt("benchmarkruntime", benchmark.duration);
@@ -910,7 +910,7 @@ VulkanExampleBase::~VulkanExampleBase()
 	}
 	vkDestroyImageView(device, depthStencil.view, nullptr);
 	vkDestroyImage(device, depthStencil.image, nullptr);
-	vkFreeMemory(device, depthStencil.mem, nullptr);
+	vkFreeMemory(device, depthStencil.memory, nullptr);
 
 	vkDestroyPipelineCache(device, pipelineCache, nullptr);
 
@@ -1276,6 +1276,13 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			UIOverlay.visible = !UIOverlay.visible;
 			UIOverlay.updated = true;
 			break;
+		case KEY_F2:
+			if (camera.type == Camera::CameraType::lookat) {
+				camera.type = Camera::CameraType::firstperson;
+			}else {
+				camera.type = Camera::CameraType::lookat;
+			}
+			break;
 		case KEY_ESCAPE:
 			PostQuitMessage(0);
 			break;
@@ -1323,25 +1330,25 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		}
 		break;
 	case WM_LBUTTONDOWN:
-		mousePos = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
-		mouseButtons.left = true;
+		mouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+		mouseState.buttons.left = true;
 		break;
 	case WM_RBUTTONDOWN:
-		mousePos = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
-		mouseButtons.right = true;
+		mouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+		mouseState.buttons.right = true;
 		break;
 	case WM_MBUTTONDOWN:
-		mousePos = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
-		mouseButtons.middle = true;
+		mouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+		mouseState.buttons.middle = true;
 		break;
 	case WM_LBUTTONUP:
-		mouseButtons.left = false;
+		mouseState.buttons.left = false;
 		break;
 	case WM_RBUTTONUP:
-		mouseButtons.right = false;
+		mouseState.buttons.right = false;
 		break;
 	case WM_MBUTTONUP:
-		mouseButtons.middle = false;
+		mouseState.buttons.middle = false;
 		break;
 	case WM_MOUSEWHEEL:
 	{
@@ -1421,7 +1428,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 							float x = AMotionEvent_getX(event, 0) - vulkanExample->touchPos.x;
 							float y = AMotionEvent_getY(event, 0) - vulkanExample->touchPos.y;
 							if ((x * x + y * y) < deadZone) {
-								vulkanExample->mouseButtons.left = true;
+								vulkanExample->mouseState.buttons.left = true;
 							}
 						};
 
@@ -1445,8 +1452,8 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						}
 						vulkanExample->touchPos.x = AMotionEvent_getX(event, 0);
 						vulkanExample->touchPos.y = AMotionEvent_getY(event, 0);
-						vulkanExample->mousePos.x = AMotionEvent_getX(event, 0);
-						vulkanExample->mousePos.y = AMotionEvent_getY(event, 0);
+						vulkanExample->mouseState.position.x = AMotionEvent_getX(event, 0);
+						vulkanExample->mouseState.position.y = AMotionEvent_getY(event, 0);
 						break;
 					}
 					case AMOTION_EVENT_ACTION_MOVE: {
@@ -1757,37 +1764,37 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 - (void)mouseDown:(NSEvent *)event
 {
 	auto point = [self getMouseLocalPoint:event];
-	vulkanExample->mousePos = glm::vec2(point.x, point.y);
-	vulkanExample->mouseButtons.left = true;
+	vulkanExample->mouseState.position = glm::vec2(point.x, point.y);
+	vulkanExample->mouseState.buttons.left = true;
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-	vulkanExample->mouseButtons.left = false;
+	vulkanExample->mouseState.buttons.left = false;
 }
 
 - (void)rightMouseDown:(NSEvent *)event
 {
 	auto point = [self getMouseLocalPoint:event];
-	vulkanExample->mousePos = glm::vec2(point.x, point.y);
-	vulkanExample->mouseButtons.right = true;
+	vulkanExample->mouseState.position = glm::vec2(point.x, point.y);
+	vulkanExample->mouseState.buttons.right = true;
 }
 
 - (void)rightMouseUp:(NSEvent *)event
 {
-	vulkanExample->mouseButtons.right = false;
+	vulkanExample->mouseState.buttons.right = false;
 }
 
 - (void)otherMouseDown:(NSEvent *)event
 {
 	auto point = [self getMouseLocalPoint:event];
-	vulkanExample->mousePos = glm::vec2(point.x, point.y);
-	vulkanExample->mouseButtons.middle = true;
+	vulkanExample->mouseState.position = glm::vec2(point.x, point.y);
+	vulkanExample->mouseState.buttons.middle = true;
 }
 
 - (void)otherMouseUp:(NSEvent *)event
 {
-	vulkanExample->mouseButtons.middle = false;
+	vulkanExample->mouseState.buttons.middle = false;
 }
 
 - (void)mouseDragged:(NSEvent *)event
@@ -2043,13 +2050,13 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 		switch (event->button)
 		{
 		case DIBI_LEFT:
-			mouseButtons.left = true;
+			mouseState.buttons.left = true;
 			break;
 		case DIBI_MIDDLE:
-			mouseButtons.middle = true;
+			mouseState.buttons.middle = true;
 			break;
 		case DIBI_RIGHT:
-			mouseButtons.right = true;
+			mouseState.buttons.right = true;
 			break;
 		default:
 			break;
@@ -2059,13 +2066,13 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 		switch (event->button)
 		{
 		case DIBI_LEFT:
-			mouseButtons.left = false;
+			mouseState.buttons.left = false;
 			break;
 		case DIBI_MIDDLE:
-			mouseButtons.middle = false;
+			mouseState.buttons.middle = false;
 			break;
 		case DIBI_RIGHT:
-			mouseButtons.right = false;
+			mouseState.buttons.right = false;
 			break;
 		default:
 			break;
@@ -2181,13 +2188,13 @@ void VulkanExampleBase::pointerButton(struct wl_pointer *pointer,
 	switch (button)
 	{
 	case BTN_LEFT:
-		mouseButtons.left = !!state;
+		mouseState.buttons.left = !!state;
 		break;
 	case BTN_MIDDLE:
-		mouseButtons.middle = !!state;
+		mouseState.buttons.middle = !!state;
 		break;
 	case BTN_RIGHT:
-		mouseButtons.right = !!state;
+		mouseState.buttons.right = !!state;
 		break;
 	default:
 		break;
@@ -2588,22 +2595,22 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	{
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		if (press->detail == XCB_BUTTON_INDEX_1)
-			mouseButtons.left = true;
+			mouseState.buttons.left = true;
 		if (press->detail == XCB_BUTTON_INDEX_2)
-			mouseButtons.middle = true;
+			mouseState.buttons.middle = true;
 		if (press->detail == XCB_BUTTON_INDEX_3)
-			mouseButtons.right = true;
+			mouseState.buttons.right = true;
 	}
 	break;
 	case XCB_BUTTON_RELEASE:
 	{
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		if (press->detail == XCB_BUTTON_INDEX_1)
-			mouseButtons.left = false;
+			mouseState.buttons.left = false;
 		if (press->detail == XCB_BUTTON_INDEX_2)
-			mouseButtons.middle = false;
+			mouseState.buttons.middle = false;
 		if (press->detail == XCB_BUTTON_INDEX_3)
-			mouseButtons.right = false;
+			mouseState.buttons.right = false;
 	}
 	break;
 	case XCB_KEY_PRESS:
@@ -2812,29 +2819,29 @@ void VulkanExampleBase::handleEvent()
 				}
 				if ((mouse_buttons & SCREEN_LEFT_MOUSE_BUTTON) == 0) {
 					if ((val & SCREEN_LEFT_MOUSE_BUTTON) == SCREEN_LEFT_MOUSE_BUTTON) {
-						mouseButtons.left = true;
+						mouseState.buttons.left = true;
 					}
 				} else {
 					if ((val & SCREEN_LEFT_MOUSE_BUTTON) == 0) {
-						mouseButtons.left = false;
+						mouseState.buttons.left = false;
 					}
 				}
 				if ((mouse_buttons & SCREEN_RIGHT_MOUSE_BUTTON) == 0) {
 					if ((val & SCREEN_RIGHT_MOUSE_BUTTON) == SCREEN_RIGHT_MOUSE_BUTTON) {
-						mouseButtons.right = true;
+						mouseState.buttons.right = true;
 					}
 				} else {
 					if ((val & SCREEN_RIGHT_MOUSE_BUTTON) == 0) {
-						mouseButtons.right = false;
+						mouseState.buttons.right = false;
 					}
 				}
 				if ((mouse_buttons & SCREEN_MIDDLE_MOUSE_BUTTON) == 0) {
 					if ((val & SCREEN_MIDDLE_MOUSE_BUTTON) == SCREEN_MIDDLE_MOUSE_BUTTON) {
-						mouseButtons.middle = true;
+						mouseState.buttons.middle = true;
 					}
 				} else {
 					if ((val & SCREEN_MIDDLE_MOUSE_BUTTON) == 0) {
-						mouseButtons.middle = false;
+						mouseState.buttons.middle = false;
 					}
 				}
 				mouse_buttons = val;
@@ -3007,8 +3014,8 @@ void VulkanExampleBase::setupDepthStencil()
 	memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	memAllloc.allocationSize = memReqs.size;
 	memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(device, &memAllloc, nullptr, &depthStencil.mem));
-	VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(device, &memAllloc, nullptr, &depthStencil.memory));
+	VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.memory, 0));
 
 	VkImageViewCreateInfo imageViewCI{};
 	imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -3149,7 +3156,7 @@ void VulkanExampleBase::windowResize()
 	// Recreate the frame buffers
 	vkDestroyImageView(device, depthStencil.view, nullptr);
 	vkDestroyImage(device, depthStencil.image, nullptr);
-	vkFreeMemory(device, depthStencil.mem, nullptr);
+	vkFreeMemory(device, depthStencil.memory, nullptr);
 	setupDepthStencil();
 	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
 		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
@@ -3188,8 +3195,8 @@ void VulkanExampleBase::windowResize()
 
 void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 {
-	int32_t dx = (int32_t)mousePos.x - x;
-	int32_t dy = (int32_t)mousePos.y - y;
+	int32_t dx = (int32_t)mouseState.position.x - x;
+	int32_t dy = (int32_t)mouseState.position.y - y;
 
 	bool handled = false;
 
@@ -3200,23 +3207,23 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 	mouseMoved((float)x, (float)y, handled);
 
 	if (handled) {
-		mousePos = glm::vec2((float)x, (float)y);
+		mouseState.position = glm::vec2((float)x, (float)y);
 		return;
 	}
 
-	if (mouseButtons.left) {
+	if (mouseState.buttons.left) {
 		camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
 		viewUpdated = true;
 	}
-	if (mouseButtons.right) {
+	if (mouseState.buttons.right) {
 		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
 		viewUpdated = true;
 	}
-	if (mouseButtons.middle) {
+	if (mouseState.buttons.middle) {
 		camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
 		viewUpdated = true;
 	}
-	mousePos = glm::vec2((float)x, (float)y);
+	mouseState.position = glm::vec2((float)x, (float)y);
 }
 
 void VulkanExampleBase::windowResized() {}

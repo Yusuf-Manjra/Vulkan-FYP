@@ -1,7 +1,7 @@
 /*
 * Extended sample base class for ray tracing based samples
 *
-* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -17,7 +17,8 @@ class VulkanRaytracingSample : public VulkanExampleBase
 {
 protected:
 	// Update the default render pass with different color attachment load ops
-	virtual void updateRenderPass();
+	virtual void setupRenderPass();
+	virtual void setupFrameBuffer();
 public:
 	// Function pointers for ray tracing related stuff
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
@@ -34,7 +35,7 @@ public:
 	// Available features and properties
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
-
+	
 	// Enabled features and properties
 	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures{};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures{};
