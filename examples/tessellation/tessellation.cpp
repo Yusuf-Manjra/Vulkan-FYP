@@ -176,6 +176,12 @@ public:
 
 		model.loadFromFile(getAssetPath() + "models/lavaplanet.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
+		//model.loadFromFile(getAssetPath() + "models/rock01.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+
+		//model.loadFromFile(getAssetPath() + "models/venus.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+
+		//model.loadFromFile(getAssetPath() + "models/suzanne.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+
 		//model.loadFromFile(getAssetPath() + "models/displacement_plane.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 	}
 
@@ -569,8 +575,10 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
 
 		// Tessellation pipelines
-		shaderStages[0] = loadShader(getShadersPath() + "tessellation/base_test.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "tessellation/base_test.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		//shaderStages[0] = loadShader(getShadersPath() + "tessellation/base_test.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		//shaderStages[1] = loadShader(getShadersPath() + "tessellation/base_test.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "tessellation/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "tessellation/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		//shaderStages[0] = loadShader(getShadersPath() + "texture/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		//shaderStages[1] = loadShader(getShadersPath() + "texture/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		shaderStages[2] = loadShader(getShadersPath() + "tessellation/pntriangles_sub.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
@@ -636,7 +644,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTexture();
+		//loadTexture();
 		loadAssets();
 		prepareUniformBuffers();
 		setupDescriptors();

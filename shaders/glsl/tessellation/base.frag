@@ -12,9 +12,13 @@ void main()
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(vec3(-4.0, -4.0, 0.0));
 
-	vec4 color = texture(samplerColorMap, inUV);
+	//vec4 color = texture(samplerColorMap, inUV);
 	
-	//outFragColor.rgb =  color.rgb;
+	vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
 	
-	outFragColor =  vec4(inUV.x, inUV.y, 0, 1);
+	//outFragColor.rgb = vec3(clamp(max(dot(N,L), 0.0), 0.2, 1.0)) * color.rgb;
+	
+	outFragColor.rgb = inNormal.xyz;
+	
+	//outFragColor =  vec4(inUV.x, inUV.y, 0, 1);
 }
