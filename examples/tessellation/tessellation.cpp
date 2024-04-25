@@ -174,7 +174,13 @@ public:
 	{
 		//model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
+		//model.loadFromFile(getAssetPath() + "models/icosahedron.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+
+		//model.loadFromFile(getAssetPath() + "models/plane.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+
 		model.loadFromFile(getAssetPath() + "models/lavaplanet.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+
+		//model.loadFromFile(getAssetPath() + "models/teapot.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
 		//model.loadFromFile(getAssetPath() + "models/rock01.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 

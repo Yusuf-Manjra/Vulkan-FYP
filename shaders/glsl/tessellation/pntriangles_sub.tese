@@ -45,7 +45,7 @@ float random (vec3 st)
 {
     //return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 55.18924)))* 43758.5453123);
 	
-	return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 55.18924))));
+	return (sin(dot(st.xyz, vec3(12.9898, 78.233, 55.18924))));
 }
 
 void main()
