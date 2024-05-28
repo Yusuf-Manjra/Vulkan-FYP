@@ -176,15 +176,15 @@ public:
 
 		//model.loadFromFile(getAssetPath() + "models/icosahedron.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
-		//model.loadFromFile(getAssetPath() + "models/plane.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+		model.loadFromFile(getAssetPath() + "models/plane.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
-		model.loadFromFile(getAssetPath() + "models/lavaplanet.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+		//model.loadFromFile(getAssetPath() + "models/lavaplanet.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
 		//model.loadFromFile(getAssetPath() + "models/teapot.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
 		//model.loadFromFile(getAssetPath() + "models/rock01.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
-		//model.loadFromFile(getAssetPath() + "models/venus.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+		//model.loadFromFile(getAssetPath() + "models/venus.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlagsFinal Year Project::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
 		//model.loadFromFile(getAssetPath() + "models/suzanne.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 
@@ -679,7 +679,7 @@ public:
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->inputFloat("Tessellation level", &uniformData.tessLevel, 0.05f, 2)) {
+			if (overlay->inputFloat("Tessellation level", &uniformData.tessLevel, 0.25f, 2)) {
 				updateUniformBuffers();
 			}
 			if (deviceFeatures.fillModeNonSolid) {
